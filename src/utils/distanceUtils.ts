@@ -1,3 +1,4 @@
+
 // Enhanced utility to calculate distance between ZIP codes with improved database
 // Uses Haversine formula for accurate distance calculation
 
@@ -36,9 +37,10 @@ const zipCoordinates: Record<string, { lat: number; lng: number }> = {
   "85701": { lat: 32.2226, lng: -110.9747 }, // Tucson
   "00000": { lat: 0, lng: 0 }, // Virtual (no physical location)
 
-  // Add NASA headquarters and government locations
+  // Add government locations
   "20546": { lat: 38.8830, lng: -77.0162 }, // NASA HQ
   "20230": { lat: 38.8935, lng: -77.0264 }, // Dept of Commerce
+  "20523": { lat: 38.8970, lng: -77.0434 }, // USAID
 
   // Default coordinates for unknown ZIP codes (US geographic center)
   "default": { lat: 39.8333, lng: -98.5833 } // Geographic center of the contiguous United States
