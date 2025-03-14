@@ -1,11 +1,11 @@
-
-import { useState } from 'react';
-import { Search, MapPin, Calendar, Award, ExternalLink } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Search, MapPin, Calendar, Award, ExternalLink, Globe } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { calculateDistance, isWithinRadius } from '@/utils/distanceUtils';
 
 // Mock data for competitions
 const COMPETITIONS = [
@@ -106,7 +106,10 @@ const CLUB_TYPES = [
 // Locations for filtering
 const LOCATIONS = [
   "All Locations",
-  "Virtual",
+  "Virtual Only",
+  "Within 25 miles",
+  "Within 50 miles",
+  "Within 100 miles",
   "National",
   "Regional",
   "State",
@@ -118,19 +121,79 @@ const CompetitionFinder = () => {
   const [clubType, setClubType] = useState('All Types');
   const [location, setLocation] = useState('All Locations');
   const [zipCode, setZipCode] = useState('');
+  const [radius, setRadius] = useState(50); // Default radius of 50 miles
   
-  // Filter competitions based on search and filters
-  const filteredCompetitions = COMPETITIONS.filter(comp => {
-    const matchesSearch = 
-      comp.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      comp.description.toLowerCase().includes(searchTerm.toLowerCase());
+  // Calculate distances for competitions based on user's ZIP
+  const competitionsWithDistance = useMemo(() => {
+    return COMPETITIONS.map(comp => {
+      const distance = zipCode ? calculateDistance(comp.zipCode, zipCode) : -1;
+      return {
+        ...comp,
+        distance,
+        isVirtual: comp.zipCode === "00000"
+      };
+    });
+  }, [zipCode]);
+  
+  // Filter competitions based on search, club type, location, and distance
+  const filteredCompetitions = useMemo(() => {
+    return competitionsWithDistance.filter(comp => {
+      // Text search filter
+      const matchesSearch = 
+        comp.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        comp.description.toLowerCase().includes(searchTerm.toLowerCase());
       
-    const matchesType = clubType === 'All Types' || comp.type === clubType;
-    const matchesLocation = location === 'All Locations' || comp.level === location;
-    const matchesZipCode = !zipCode || comp.zipCode.startsWith(zipCode);
+      // Club type filter
+      const matchesType = clubType === 'All Types' || comp.type === clubType;
+      
+      // Location and proximity filter
+      let matchesLocation = false;
+      
+      if (location === 'All Locations') {
+        matchesLocation = true;
+      } else if (location === 'Virtual Only') {
+        matchesLocation = comp.isVirtual;
+      } else if (location === 'Within 25 miles') {
+        matchesLocation = zipCode ? isWithinRadius(comp.zipCode, zipCode, 25) : false;
+      } else if (location === 'Within 50 miles') {
+        matchesLocation = zipCode ? isWithinRadius(comp.zipCode, zipCode, 50) : false;
+      } else if (location === 'Within 100 miles') {
+        matchesLocation = zipCode ? isWithinRadius(comp.zipCode, zipCode, 100) : false;
+      } else {
+        matchesLocation = comp.level === location;
+      }
+      
+      return matchesSearch && matchesType && matchesLocation;
+    }).sort((a, b) => {
+      // Always put virtual events at the top if filtering for virtual
+      if (location === 'Virtual Only') {
+        if (a.isVirtual && !b.isVirtual) return -1;
+        if (!a.isVirtual && b.isVirtual) return 1;
+      }
+      
+      // Sort by distance if we have valid distances
+      if (a.distance >= 0 && b.distance >= 0) {
+        return a.distance - b.distance;
+      }
+      
+      // Otherwise, sort alphabetically by title
+      return a.title.localeCompare(b.title);
+    });
+  }, [competitionsWithDistance, searchTerm, clubType, location, zipCode]);
+
+  // Auto-update radius based on location selection
+  const handleLocationChange = (value: string) => {
+    setLocation(value);
     
-    return matchesSearch && matchesType && matchesLocation && matchesZipCode;
-  });
+    // Update radius based on location selection
+    if (value === 'Within 25 miles') {
+      setRadius(25);
+    } else if (value === 'Within 50 miles') {
+      setRadius(50);
+    } else if (value === 'Within 100 miles') {
+      setRadius(100);
+    }
+  };
 
   return (
     <div className="bg-white rounded-xl p-6 shadow-sm">
@@ -164,7 +227,7 @@ const CompetitionFinder = () => {
             </SelectContent>
           </Select>
           
-          <Select onValueChange={setLocation} defaultValue={location}>
+          <Select onValueChange={handleLocationChange} defaultValue={location}>
             <SelectTrigger>
               <SelectValue placeholder="Location" />
             </SelectTrigger>
@@ -179,7 +242,7 @@ const CompetitionFinder = () => {
             <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
             <Input
               type="text"
-              placeholder="Enter your ZIP code"
+              placeholder="Enter your ZIP code for local results"
               className="pl-10"
               value={zipCode}
               onChange={(e) => setZipCode(e.target.value.slice(0, 5))}
@@ -198,12 +261,24 @@ const CompetitionFinder = () => {
                 <div className="flex justify-between items-start">
                   <div>
                     <CardTitle className="text-xl">{competition.title}</CardTitle>
-                    <CardDescription className="mt-1 flex items-center">
-                      <MapPin className="h-4 w-4 mr-1 text-gray-400" />
-                      {competition.location}
-                      <span className="mx-2">•</span>
-                      <Calendar className="h-4 w-4 mr-1 text-gray-400" />
-                      {competition.date}
+                    <CardDescription className="mt-1 flex items-center flex-wrap gap-y-1">
+                      <span className="flex items-center mr-3">
+                        {competition.isVirtual ? (
+                          <Globe className="h-4 w-4 mr-1 text-gray-400" />
+                        ) : (
+                          <MapPin className="h-4 w-4 mr-1 text-gray-400" />
+                        )}
+                        {competition.location}
+                        {competition.distance > 0 && !competition.isVirtual && (
+                          <span className="ml-1 text-clubseed-600 font-medium">
+                            ({competition.distance} mi)
+                          </span>
+                        )}
+                      </span>
+                      <span className="flex items-center">
+                        <Calendar className="h-4 w-4 mr-1 text-gray-400" />
+                        {competition.date}
+                      </span>
                     </CardDescription>
                   </div>
                   <Badge className="bg-clubseed-100 text-clubseed-700 hover:bg-clubseed-200">

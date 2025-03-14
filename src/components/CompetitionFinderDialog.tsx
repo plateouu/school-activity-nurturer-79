@@ -1,6 +1,5 @@
-
-import { useState } from 'react';
-import { Search, MapPin, Calendar, Award, ExternalLink } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Search, MapPin, Calendar, Award, ExternalLink, Globe } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -14,8 +13,8 @@ import {
   DialogDescription,
   DialogTrigger
 } from "@/components/ui/dialog";
+import { calculateDistance, isWithinRadius } from '@/utils/distanceUtils';
 
-// Mock data for competitions
 const COMPETITIONS = [
   {
     id: 1,
@@ -96,7 +95,6 @@ const COMPETITIONS = [
   }
 ];
 
-// Club types for filtering
 const CLUB_TYPES = [
   "All Types",
   "Science",
@@ -111,24 +109,82 @@ const CLUB_TYPES = [
   "Sports"
 ];
 
+const LOCATIONS = [
+  "All Locations",
+  "Virtual Only",
+  "Within 25 miles",
+  "Within 50 miles",
+  "Within 100 miles",
+];
+
 const CompetitionFinderDialog = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [clubType, setClubType] = useState('All Types');
+  const [location, setLocation] = useState('Within 50 miles');
   const [zipCode, setZipCode] = useState('');
   const [open, setOpen] = useState(false);
-  
-  // Filter competitions based on search and filters
-  const filteredCompetitions = COMPETITIONS.filter(comp => {
-    const matchesSearch = 
-      comp.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      comp.description.toLowerCase().includes(searchTerm.toLowerCase());
+  const [radius, setRadius] = useState(50);
+
+  const competitionsWithDistance = useMemo(() => {
+    return COMPETITIONS.map(comp => {
+      const distance = zipCode ? calculateDistance(comp.zipCode, zipCode) : -1;
+      return {
+        ...comp,
+        distance,
+        isVirtual: comp.zipCode === "00000"
+      };
+    });
+  }, [zipCode]);
+
+  const filteredCompetitions = useMemo(() => {
+    return competitionsWithDistance.filter(comp => {
+      const matchesSearch = 
+        comp.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        comp.description.toLowerCase().includes(searchTerm.toLowerCase());
       
-    const matchesType = clubType === 'All Types' || comp.type === clubType;
-    const matchesZipCode = !zipCode || comp.zipCode.startsWith(zipCode);
+      const matchesType = clubType === 'All Types' || comp.type === clubType;
+      
+      let matchesLocation = false;
+      
+      if (location === 'All Locations') {
+        matchesLocation = true;
+      } else if (location === 'Virtual Only') {
+        matchesLocation = comp.isVirtual;
+      } else if (location === 'Within 25 miles') {
+        matchesLocation = zipCode ? isWithinRadius(comp.zipCode, zipCode, 25) : false;
+      } else if (location === 'Within 50 miles') {
+        matchesLocation = zipCode ? isWithinRadius(comp.zipCode, zipCode, 50) : false;
+      } else if (location === 'Within 100 miles') {
+        matchesLocation = zipCode ? isWithinRadius(comp.zipCode, zipCode, 100) : false;
+      }
+      
+      return matchesSearch && matchesType && matchesLocation;
+    }).sort((a, b) => {
+      if (location === 'Virtual Only') {
+        if (a.isVirtual && !b.isVirtual) return -1;
+        if (!a.isVirtual && b.isVirtual) return 1;
+      }
+      
+      if (a.distance >= 0 && b.distance >= 0) {
+        return a.distance - b.distance;
+      }
+      
+      return a.title.localeCompare(b.title);
+    });
+  }, [competitionsWithDistance, searchTerm, clubType, location, zipCode]);
+
+  const handleLocationChange = (value: string) => {
+    setLocation(value);
     
-    return matchesSearch && matchesType && matchesZipCode;
-  });
-  
+    if (value === 'Within 25 miles') {
+      setRadius(25);
+    } else if (value === 'Within 50 miles') {
+      setRadius(50);
+    } else if (value === 'Within 100 miles') {
+      setRadius(100);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -147,7 +203,6 @@ const CompetitionFinderDialog = () => {
           </DialogDescription>
         </DialogHeader>
         
-        {/* Search and filters */}
         <div className="grid grid-cols-1 gap-4 my-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
@@ -165,35 +220,59 @@ const CompetitionFinderDialog = () => {
               <label htmlFor="zip-code" className="block text-sm font-medium text-gray-700 mb-1">
                 ZIP Code
               </label>
-              <Input
-                id="zip-code"
-                type="text"
-                placeholder="Enter your ZIP code"
-                value={zipCode}
-                onChange={(e) => setZipCode(e.target.value.slice(0, 5))}
-                maxLength={5}
-              />
+              <div className="relative">
+                <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                <Input
+                  id="zip-code"
+                  type="text"
+                  placeholder="Enter your ZIP code"
+                  className="pl-10"
+                  value={zipCode}
+                  onChange={(e) => setZipCode(e.target.value.slice(0, 5))}
+                  maxLength={5}
+                />
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Enter your ZIP code to find nearby competitions
+              </p>
             </div>
             
-            <div>
-              <label htmlFor="club-type" className="block text-sm font-medium text-gray-700 mb-1">
-                Club Type
-              </label>
-              <Select onValueChange={setClubType} defaultValue={clubType}>
-                <SelectTrigger id="club-type">
-                  <SelectValue placeholder="Club Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {CLUB_TYPES.map(type => (
-                    <SelectItem key={type} value={type}>{type}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="club-type" className="block text-sm font-medium text-gray-700 mb-1">
+                  Club Type
+                </label>
+                <Select onValueChange={setClubType} defaultValue={clubType}>
+                  <SelectTrigger id="club-type">
+                    <SelectValue placeholder="Club Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CLUB_TYPES.map(type => (
+                      <SelectItem key={type} value={type}>{type}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">
+                  Distance
+                </label>
+                <Select onValueChange={handleLocationChange} defaultValue={location}>
+                  <SelectTrigger id="location">
+                    <SelectValue placeholder="Distance" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {LOCATIONS.map(loc => (
+                      <SelectItem key={loc} value={loc}>{loc}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
         </div>
         
-        {/* Competition list */}
         <div className="space-y-4 mt-2">
           {filteredCompetitions.length > 0 ? (
             filteredCompetitions.map(competition => (
@@ -202,10 +281,19 @@ const CompetitionFinderDialog = () => {
                   <div className="flex justify-between items-start">
                     <div>
                       <CardTitle className="text-xl">{competition.title}</CardTitle>
-                      <CardDescription className="mt-1 flex items-center flex-wrap">
+                      <CardDescription className="mt-1 flex items-center flex-wrap gap-y-1">
                         <span className="flex items-center mr-3">
-                          <MapPin className="h-4 w-4 mr-1 text-gray-400" />
+                          {competition.isVirtual ? (
+                            <Globe className="h-4 w-4 mr-1 text-gray-400" />
+                          ) : (
+                            <MapPin className="h-4 w-4 mr-1 text-gray-400" />
+                          )}
                           {competition.location}
+                          {competition.distance > 0 && !competition.isVirtual && (
+                            <span className="ml-1 text-clubseed-600 font-medium">
+                              ({competition.distance} mi)
+                            </span>
+                          )}
                         </span>
                         <span className="flex items-center">
                           <Calendar className="h-4 w-4 mr-1 text-gray-400" />
@@ -237,18 +325,25 @@ const CompetitionFinderDialog = () => {
             ))
           ) : (
             <div className="text-center py-8">
-              <p className="text-gray-500">No competitions found matching your criteria.</p>
-              <Button 
-                variant="link" 
-                className="mt-2 text-clubseed-500"
-                onClick={() => {
-                  setSearchTerm('');
-                  setClubType('All Types');
-                  setZipCode('');
-                }}
-              >
-                Clear all filters
-              </Button>
+              <p className="text-gray-500">
+                {zipCode ? 
+                  "No competitions found in your area matching your criteria." :
+                  "Please enter your ZIP code to find nearby competitions."
+                }
+              </p>
+              {(zipCode || searchTerm !== '' || clubType !== 'All Types') && (
+                <Button 
+                  variant="link" 
+                  className="mt-2 text-clubseed-500"
+                  onClick={() => {
+                    setSearchTerm('');
+                    setClubType('All Types');
+                    setLocation('Within 50 miles');
+                  }}
+                >
+                  Clear filters
+                </Button>
+              )}
             </div>
           )}
         </div>
