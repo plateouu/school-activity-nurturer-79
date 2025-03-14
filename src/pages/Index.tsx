@@ -1,4 +1,3 @@
-
 import { useEffect } from 'react';
 import Hero from '@/components/Hero';
 import Stats from '@/components/Stats';
@@ -115,7 +114,7 @@ const Index = () => {
       <Stats />
       
       {/* Featured Tools */}
-      <section className="section bg-gradient-to-b from-clubseed-50 to-white">
+      <section className="section bg-clubseed-50">
         <div className="text-center mb-16 reveal">
           <h2 className="text-3xl md:text-4xl font-bold mb-6">Powerful Tools for Club Success</h2>
           <p className="text-lg text-gray-600 max-w-3xl mx-auto">
