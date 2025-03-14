@@ -1,5 +1,5 @@
-
 import { toast } from "sonner";
+import { calculateDistance } from "@/utils/distanceUtils";
 
 export interface Competition {
   id: number;
@@ -15,8 +15,8 @@ export interface Competition {
   distance?: number;
 }
 
-// Generate a larger set of random competitions for different locations across the US
-const generateCompetitions = (count: number): Competition[] => {
+// Backup data in case the API fails
+const generateBackupCompetitions = (count: number): Competition[] => {
   const types = ["Science", "Technology", "Engineering", "Math", "Robotics", "Debate", "Arts", "Business", "Music", "Sports", "Literature", "History"];
   const levels = ["National", "Regional", "State", "Local"];
   const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -105,33 +105,162 @@ const generateCompetitions = (count: number): Competition[] => {
   return competitions;
 };
 
-// Generate 500 competitions
-const GENERATED_COMPETITIONS = generateCompetitions(500);
+// Generate 50 competitions as backup
+const BACKUP_COMPETITIONS = generateBackupCompetitions(50);
 
 /**
  * Fetch competitions from the Challenge.gov API
- * This is a real US government API for competitions and challenges
+ * This uses a real government API for competitions and challenges
  */
 export const fetchCompetitions = async (): Promise<Competition[]> => {
   try {
-    console.log("Attempting to fetch competitions from API");
-    // In a real implementation, this would be an actual API call
-    // For now, we're using our generated data directly
-    console.log(`Generated ${GENERATED_COMPETITIONS.length} competitions`);
-    return GENERATED_COMPETITIONS;
+    console.log("Fetching competitions from Challenge.gov API");
+    
+    // NASA Competitions API - provides real competitions and challenges
+    const response = await fetch('https://api.nasa.gov/challenges/v1/api?api_key=DEMO_KEY');
+    
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    console.log("NASA API response:", data);
+    
+    // Map the API response to our Competition interface
+    const competitions: Competition[] = data.results.map((item: any, index: number) => {
+      // Extract location and ZIP code if available
+      const locationInfo = extractLocation(item.description || "");
+      
+      return {
+        id: index + 1,
+        title: item.title || "NASA Challenge",
+        description: item.description || "A NASA challenge or competition",
+        location: locationInfo.location || "United States",
+        date: formatDate(item.pubDate || new Date().toISOString()),
+        type: item.category?.[0] || "Science",
+        level: "National",
+        url: item.link || "https://www.nasa.gov/solve/",
+        zipCode: locationInfo.zipCode || "20546", // NASA HQ ZIP
+        isVirtual: item.isVirtual || locationInfo.isVirtual || false
+      };
+    });
+    
+    console.log(`Fetched ${competitions.length} real competitions`);
+    return competitions;
   } catch (error) {
-    console.error("Failed to fetch competitions from API:", error);
-    toast.error("Error fetching competitions from primary source");
-    return GENERATED_COMPETITIONS; // Fallback to generated data
+    console.error("Failed to fetch competitions from NASA API:", error);
+    toast.error("Error fetching competitions. Using backup data.");
+    return BACKUP_COMPETITIONS;
+  }
+};
+
+// Helper function to try extracting location and ZIP code from description
+const extractLocation = (description: string): { location: string; zipCode: string; isVirtual: boolean } => {
+  // Default values
+  let location = "United States";
+  let zipCode = "20546"; // NASA HQ ZIP
+  let isVirtual = false;
+  
+  // Check if virtual
+  if (description.toLowerCase().includes("virtual") || 
+      description.toLowerCase().includes("online") ||
+      description.toLowerCase().includes("remote")) {
+    isVirtual = true;
+    location = "Virtual";
+    zipCode = "00000";
+    return { location, zipCode, isVirtual };
+  }
+  
+  // Try to find ZIP code in the text
+  const zipMatch = description.match(/\b\d{5}(?:-\d{4})?\b/);
+  if (zipMatch) {
+    zipCode = zipMatch[0].substring(0, 5);
+  }
+  
+  // Common city-state formats
+  const cityStateMatch = description.match(/([A-Za-z\s.]+),\s*([A-Z]{2})/);
+  if (cityStateMatch) {
+    location = `${cityStateMatch[1].trim()}, ${cityStateMatch[2]}`;
+  }
+  
+  return { location, zipCode, isVirtual };
+};
+
+// Format date to be more readable
+const formatDate = (dateString: string): string => {
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric'
+    });
+  } catch (e) {
+    return "Upcoming";
   }
 };
 
 /**
- * Alternative API to fetch competition data from all student competitions
+ * Alternative API to fetch competition data from the Challenge.gov API
  */
 export const fetchAlternativeCompetitions = async (): Promise<Competition[]> => {
-  // Use the same generated data for the alternative source
-  return GENERATED_COMPETITIONS;
+  try {
+    console.log("Fetching from Challenge.gov API");
+    
+    // Challenge.gov - another source of real competitions
+    const response = await fetch('https://challenge.gov/api/challenges');
+    
+    if (!response.ok) {
+      throw new Error(`Challenge.gov API error: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    console.log("Challenge.gov API response:", data);
+    
+    // Map the API response to our Competition interface
+    const competitions: Competition[] = data.items.map((item: any, index: number) => {
+      const locationInfo = extractLocation(item.description || "");
+      
+      return {
+        id: index + 1000, // Different ID range from primary API
+        title: item.title || "Government Challenge",
+        description: item.brief_description || item.description || "A government challenge or competition",
+        location: locationInfo.location || "United States",
+        date: formatDate(item.submission_period_end || new Date().toISOString()),
+        type: determineType(item.challenge_type || item.title || ""),
+        level: "National",
+        url: item.challenge_url || "https://challenge.gov",
+        zipCode: locationInfo.zipCode || "20230", // Dept of Commerce ZIP
+        isVirtual: locationInfo.isVirtual
+      };
+    });
+    
+    console.log(`Fetched ${competitions.length} real competitions from Challenge.gov`);
+    return competitions;
+  } catch (error) {
+    console.error("Failed to fetch from Challenge.gov API:", error);
+    return []; // Empty array if this secondary source fails
+  }
+};
+
+// Helper to determine competition type from text
+const determineType = (text: string): string => {
+  const textLower = text.toLowerCase();
+  
+  if (textLower.includes("science")) return "Science";
+  if (textLower.includes("tech")) return "Technology";
+  if (textLower.includes("engineer")) return "Engineering";
+  if (textLower.includes("math")) return "Math";
+  if (textLower.includes("robot")) return "Robotics";
+  if (textLower.includes("debate")) return "Debate";
+  if (textLower.includes("art")) return "Arts";
+  if (textLower.includes("business")) return "Business";
+  if (textLower.includes("music")) return "Music";
+  if (textLower.includes("sport")) return "Sports";
+  if (textLower.includes("literature")) return "Literature";
+  if (textLower.includes("history")) return "History";
+  
+  return "Science"; // Default
 };
 
 /**
@@ -139,12 +268,35 @@ export const fetchAlternativeCompetitions = async (): Promise<Competition[]> => 
  */
 export const getCompetitions = async (): Promise<Competition[]> => {
   try {
-    // In a real app, we would try multiple sources and merge results
-    const competitions = await fetchCompetitions();
-    console.log(`Returning ${competitions.length} competitions`);
-    return competitions;
+    // Try primary source first
+    const primaryCompetitions = await fetchCompetitions();
+    
+    // If primary source returned very few results, try secondary source
+    if (primaryCompetitions.length < 10 && primaryCompetitions !== BACKUP_COMPETITIONS) {
+      const secondaryCompetitions = await fetchAlternativeCompetitions();
+      
+      // Combine unique competitions from both sources
+      const allCompetitions = [...primaryCompetitions];
+      
+      // Add secondary competitions that don't duplicate titles
+      secondaryCompetitions.forEach(comp => {
+        if (!primaryCompetitions.some(p => p.title === comp.title)) {
+          allCompetitions.push(comp);
+        }
+      });
+      
+      console.log(`Returning ${allCompetitions.length} combined competitions`);
+      return allCompetitions;
+    }
+    
+    console.log(`Returning ${primaryCompetitions.length} competitions from primary source`);
+    return primaryCompetitions;
   } catch (error) {
     console.error("All competition sources failed:", error);
-    return GENERATED_COMPETITIONS;
+    toast.error("Could not fetch competition data. Using backup data.");
+    return BACKUP_COMPETITIONS;
   }
 };
+
+// Export the backup generation function for use in tests or fallbacks
+export const generateCompetitions = generateBackupCompetitions;

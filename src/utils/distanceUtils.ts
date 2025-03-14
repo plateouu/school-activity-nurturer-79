@@ -1,8 +1,8 @@
+// Enhanced utility to calculate distance between ZIP codes with improved database
+// Uses Haversine formula for accurate distance calculation
 
-// Simple utility to calculate distance between ZIP codes
-// This is a simplified version - in a real app, we would use a geocoding API
-
-// Map of ZIP codes to approximate lat/long coordinates
+// Expanded map of ZIP codes to approximate lat/long coordinates
+// This includes the original cities plus additional ZIP codes
 const zipCoordinates: Record<string, { lat: number; lng: number }> = {
   // Major cities
   "10001": { lat: 40.7504, lng: -73.9963 }, // New York
@@ -36,6 +36,10 @@ const zipCoordinates: Record<string, { lat: number; lng: number }> = {
   "85701": { lat: 32.2226, lng: -110.9747 }, // Tucson
   "00000": { lat: 0, lng: 0 }, // Virtual (no physical location)
 
+  // Add NASA headquarters and government locations
+  "20546": { lat: 38.8830, lng: -77.0162 }, // NASA HQ
+  "20230": { lat: 38.8935, lng: -77.0264 }, // Dept of Commerce
+
   // Default coordinates for unknown ZIP codes (US geographic center)
   "default": { lat: 39.8333, lng: -98.5833 } // Geographic center of the contiguous United States
 };
@@ -47,14 +51,18 @@ const zipCoordinates: Record<string, { lat: number; lng: number }> = {
  * @returns Distance in miles, or -1 if virtual or unknown
  */
 export const calculateDistance = (zip1: string, zip2: string): number => {
-  // If either ZIP is for virtual events, return -1
-  if (zip1 === "00000" || zip2 === "00000") {
+  // Clean up ZIP codes (remove any non-numeric characters)
+  const cleanZip1 = zip1?.replace(/\D/g, '').substring(0, 5) || '';
+  const cleanZip2 = zip2?.replace(/\D/g, '').substring(0, 5) || '';
+  
+  // If either ZIP is for virtual events or invalid, return -1
+  if (cleanZip1 === "00000" || cleanZip2 === "00000" || !cleanZip1 || !cleanZip2) {
     return -1;
   }
   
   // Get coordinates for both ZIP codes
-  const coords1 = zipCoordinates[zip1] || zipCoordinates["default"];
-  const coords2 = zipCoordinates[zip2] || zipCoordinates["default"];
+  const coords1 = zipCoordinates[cleanZip1] || zipCoordinates["default"];
+  const coords2 = zipCoordinates[cleanZip2] || zipCoordinates["default"];
   
   // Calculate distance using Haversine formula
   const R = 3958.8; // Earth radius in miles
@@ -69,6 +77,7 @@ export const calculateDistance = (zip1: string, zip2: string): number => {
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
   const distance = R * c;
   
+  // Return rounded distance
   return Math.round(distance);
 };
 
@@ -92,9 +101,9 @@ export const isWithinRadius = (compZip: string, userZip: string, radius: number)
   
   const distance = calculateDistance(compZip, userZip);
   
-  // Unknown ZIP codes are always included to avoid hiding potentially relevant competitions
-  if (distance === 9999) {
-    return false; // Changed to false to avoid showing irrelevant competitions
+  // If distance is invalid (-1), exclude from nearby results
+  if (distance === -1) {
+    return false;
   }
   
   // Include if within radius
