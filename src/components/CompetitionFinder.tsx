@@ -1,5 +1,6 @@
+
 import { useState, useMemo, useEffect } from 'react';
-import { Search, MapPin, Calendar, Award, ExternalLink, Globe, Loader2 } from 'lucide-react';
+import { Search, MapPin, Calendar, Award, ExternalLink, Globe, Loader2, AlertTriangle, CheckCircle } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -45,6 +46,7 @@ const CompetitionFinder = () => {
   const [radius, setRadius] = useState(50); // Default radius of 50 miles
   const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showRealOnly, setShowRealOnly] = useState(true); // Default to showing real competitions only
   
   // Fetch competitions when component mounts
   useEffect(() => {
@@ -96,9 +98,14 @@ const CompetitionFinder = () => {
     });
   }, [competitions, zipCode]);
   
-  // Filter competitions based on search, club type, location, and distance
+  // Filter competitions based on search, club type, location, distance, and real/generated status
   const filteredCompetitions = useMemo(() => {
     return competitionsWithDistance.filter(comp => {
+      // Only show real competitions if filter is enabled
+      if (showRealOnly && !comp.isReal) {
+        return false;
+      }
+      
       // Text search filter
       const matchesSearch = 
         comp.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -126,13 +133,17 @@ const CompetitionFinder = () => {
       
       return matchesSearch && matchesType && matchesLocation;
     }).sort((a, b) => {
-      // Always put virtual events at the top if filtering for virtual
+      // Always prioritize real competitions
+      if (a.isReal && !b.isReal) return -1;
+      if (!a.isReal && b.isReal) return 1;
+      
+      // Then put virtual events at the top if filtering for virtual
       if (location === 'Virtual Only') {
         if (a.isVirtual && !b.isVirtual) return -1;
         if (!a.isVirtual && b.isVirtual) return 1;
       }
       
-      // Sort by distance if we have valid distances
+      // Then sort by distance if we have valid distances
       if (a.distance >= 0 && b.distance >= 0) {
         return a.distance - b.distance;
       }
@@ -140,7 +151,7 @@ const CompetitionFinder = () => {
       // Otherwise, sort alphabetically by title
       return a.title.localeCompare(b.title);
     });
-  }, [competitionsWithDistance, searchTerm, clubType, location, zipCode]);
+  }, [competitionsWithDistance, searchTerm, clubType, location, zipCode, showRealOnly]);
 
   // Auto-update radius based on location selection
   const handleLocationChange = (value: string) => {
@@ -210,6 +221,25 @@ const CompetitionFinder = () => {
               maxLength={5}
             />
           </div>
+          
+          <div className="flex items-center space-x-2">
+            <Button 
+              variant={showRealOnly ? "default" : "outline"} 
+              onClick={() => setShowRealOnly(true)}
+              className="flex items-center gap-2"
+            >
+              <CheckCircle className="h-4 w-4" />
+              Real Only
+            </Button>
+            <Button 
+              variant={!showRealOnly ? "default" : "outline"} 
+              onClick={() => setShowRealOnly(false)}
+              className="flex items-center gap-2"
+            >
+              <AlertTriangle className="h-4 w-4" />
+              Include Simulated
+            </Button>
+          </div>
         </div>
       </div>
       
@@ -247,9 +277,22 @@ const CompetitionFinder = () => {
                       </span>
                     </CardDescription>
                   </div>
-                  <Badge className="bg-clubseed-100 text-clubseed-700 hover:bg-clubseed-200">
-                    {competition.type}
-                  </Badge>
+                  <div className="flex flex-col gap-2">
+                    <Badge className="bg-clubseed-100 text-clubseed-700 hover:bg-clubseed-200">
+                      {competition.type}
+                    </Badge>
+                    {competition.isReal ? (
+                      <Badge className="bg-green-100 text-green-700 hover:bg-green-200">
+                        <CheckCircle className="h-3 w-3 mr-1" />
+                        Real
+                      </Badge>
+                    ) : (
+                      <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-200">
+                        <AlertTriangle className="h-3 w-3 mr-1" />
+                        Simulated
+                      </Badge>
+                    )}
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
@@ -280,6 +323,7 @@ const CompetitionFinder = () => {
                 setClubType('All Types');
                 setLocation('All Locations');
                 setZipCode('');
+                setShowRealOnly(false);
               }}
             >
               Clear all filters
