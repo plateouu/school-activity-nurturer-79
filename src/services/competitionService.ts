@@ -1,3 +1,4 @@
+
 import { toast } from "sonner";
 import { calculateDistance } from "@/utils/distanceUtils";
 
@@ -15,7 +16,7 @@ export interface Competition {
   distance?: number;
 }
 
-// Backup data in case the API fails
+// Improved backup data generation with better performance
 const generateBackupCompetitions = (count: number): Competition[] => {
   const types = ["Science", "Technology", "Engineering", "Math", "Robotics", "Debate", "Arts", "Business", "Music", "Sports", "Literature", "History"];
   const levels = ["National", "Regional", "State", "Local"];
@@ -52,16 +53,28 @@ const generateBackupCompetitions = (count: number): Competition[] => {
     { city: "Milwaukee, WI", zip: "53201" },
     { city: "Albuquerque, NM", zip: "87101" },
     { city: "Tucson, AZ", zip: "85701" },
-    { city: "Virtual", zip: "00000" }
+    { city: "Virtual", zip: "00000" },
+    // NASA locations
+    { city: "NASA HQ, Washington, DC", zip: "20546" },
+    { city: "Cape Canaveral, FL", zip: "32899" },
+    { city: "NASA Johnson Space Center, TX", zip: "77058" },
+    { city: "NASA JPL, CA", zip: "91109" },
+    { city: "NASA Marshall Space Flight Center, AL", zip: "35812" }
   ];
 
   const competitions: Competition[] = [];
 
+  // Pre-compute some values to avoid redundant calculations in the loop
+  const typesLength = types.length;
+  const levelsLength = levels.length;
+  const monthsLength = months.length;
+  const locationsLength = locations.length;
+
   for (let i = 1; i <= count; i++) {
-    const typeIndex = Math.floor(Math.random() * types.length);
-    const levelIndex = Math.floor(Math.random() * levels.length);
-    const monthIndex = Math.floor(Math.random() * months.length);
-    const locationIndex = Math.floor(Math.random() * locations.length);
+    const typeIndex = Math.floor(Math.random() * typesLength);
+    const levelIndex = Math.floor(Math.random() * levelsLength);
+    const monthIndex = Math.floor(Math.random() * monthsLength);
+    const locationIndex = Math.floor(Math.random() * locationsLength);
     const day = Math.floor(Math.random() * 28) + 1;
     const year = 2024 + Math.floor(Math.random() * 2); // 2024 or 2025
     
@@ -69,24 +82,12 @@ const generateBackupCompetitions = (count: number): Competition[] => {
     const isVirtual = location.city === "Virtual";
     const type = types[typeIndex];
     
-    // Create more descriptive and realistic competition titles
-    const titlePrefixes = ["National", "Annual", "Regional", "State", "International", type];
-    const titlePrefix = titlePrefixes[Math.floor(Math.random() * titlePrefixes.length)];
+    // Simplified title generation
+    const titlePrefix = Math.random() > 0.5 ? type : levels[levelIndex];
+    const title = `${titlePrefix} ${type} Competition`;
     
-    const titleSuffixes = ["Competition", "Challenge", "Tournament", "Olympiad", "Championship", "Contest", "Exhibition", "Summit"];
-    const titleSuffix = titleSuffixes[Math.floor(Math.random() * titleSuffixes.length)];
-    
-    const title = `${titlePrefix} ${type} ${titleSuffix}`;
-    
-    // More detailed descriptions
-    const descriptionParts = [
-      `A ${levels[levelIndex].toLowerCase()} level ${type.toLowerCase()} competition designed for students of all ages.`,
-      `Participants will showcase their skills in ${type.toLowerCase()} through various challenges and events.`,
-      `Awards and prizes will be given to top performers.`,
-      `Great opportunity for networking and learning from experts in the field.`
-    ];
-    
-    const description = descriptionParts.join(' ');
+    // More efficient description generation
+    const description = `A ${levels[levelIndex].toLowerCase()} level ${type.toLowerCase()} competition. Participants will showcase their skills through various challenges and events. Awards will be given to top performers.`;
     
     competitions.push({
       id: i,
@@ -96,7 +97,7 @@ const generateBackupCompetitions = (count: number): Competition[] => {
       date: `${months[monthIndex]} ${day}, ${year}`,
       type,
       level: levels[levelIndex],
-      url: `https://example.com/${type.toLowerCase()}-competition-${i}`,
+      url: `https://example.com/competition-${i}`,
       zipCode: location.zip,
       isVirtual
     });
@@ -105,64 +106,8 @@ const generateBackupCompetitions = (count: number): Competition[] => {
   return competitions;
 };
 
-// Generate 50 competitions as backup
+// Pre-generate backup competitions to avoid regenerating them on each request
 const BACKUP_COMPETITIONS = generateBackupCompetitions(50);
-
-/**
- * Fetch competitions from NASA open tech challenges API which is reliable
- */
-export const fetchCompetitions = async (): Promise<Competition[]> => {
-  try {
-    console.log("Fetching competitions from NASA Techport API");
-    
-    // NASA Techport API - provides real NASA challenges and projects
-    const response = await fetch('https://api.nasa.gov/techport/api/projects?api_key=DEMO_KEY');
-    
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    console.log("NASA API response:", data);
-    
-    if (!data.projects || !data.projects.projects || !Array.isArray(data.projects.projects)) {
-      throw new Error("Invalid data format from NASA API");
-    }
-    
-    // Map the API response to our Competition interface
-    const competitions: Competition[] = data.projects.projects.slice(0, 30).map((item: any, index: number) => {
-      const isVirtual = Math.random() < 0.3; // 30% chance of being virtual
-      const projectId = item.projectId;
-      
-      return {
-        id: index + 1,
-        title: item.title || "NASA Technology Challenge",
-        description: item.description || "A NASA technology development project or challenge",
-        location: isVirtual ? "Virtual" : "NASA HQ, Washington, DC",
-        date: formatDate(new Date().toISOString()),
-        type: determineType(item.title || "Technology"),
-        level: "National",
-        url: `https://techport.nasa.gov/view/${projectId}`,
-        zipCode: isVirtual ? "00000" : "20546", // NASA HQ ZIP
-        isVirtual
-      };
-    });
-    
-    console.log(`Fetched ${competitions.length} real NASA competitions`);
-    return competitions;
-  } catch (error) {
-    console.error("Failed to fetch competitions from NASA API:", error);
-    toast.error("Error fetching competitions. Using backup data.");
-    
-    try {
-      // Try an alternative source
-      return await fetchAlternativeCompetitions();
-    } catch {
-      // If all else fails, use our backup data
-      return BACKUP_COMPETITIONS;
-    }
-  }
-};
 
 // Format date to be more readable
 const formatDate = (dateString: string): string => {
@@ -178,25 +123,111 @@ const formatDate = (dateString: string): string => {
   }
 };
 
+// Helper to determine competition type from text
+const determineType = (text: string): string => {
+  const textLower = text.toLowerCase();
+  
+  if (textLower.includes("science")) return "Science";
+  if (textLower.includes("tech")) return "Technology";
+  if (textLower.includes("engineer")) return "Engineering";
+  if (textLower.includes("math")) return "Math";
+  if (textLower.includes("robot")) return "Robotics";
+  if (textLower.includes("debate")) return "Debate";
+  if (textLower.includes("art")) return "Arts";
+  if (textLower.includes("business")) return "Business";
+  if (textLower.includes("music")) return "Music";
+  if (textLower.includes("sport")) return "Sports";
+  if (textLower.includes("literature")) return "Literature";
+  if (textLower.includes("history")) return "History";
+  if (textLower.includes("innovation")) return "Technology";
+  if (textLower.includes("challenge")) return "Technology";
+  
+  // Default to Technology
+  return "Technology";
+};
+
 /**
- * Alternative API to fetch real competition data from a different source
+ * Optimized approach to getting competitions data with timeout
  */
-export const fetchAlternativeCompetitions = async (): Promise<Competition[]> => {
-  try {
-    console.log("Fetching from SpaceX API (alternative source)");
-    
-    // Public SpaceX API that contains real rocket launches
-    const response = await fetch('https://api.spacexdata.com/v4/launches');
-    
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
+export const getCompetitions = async (): Promise<Competition[]> => {
+  // Immediately create a promise for the backup data
+  const backupPromise = Promise.resolve(BACKUP_COMPETITIONS);
+  
+  // Function to fetch from NASA API with timeout
+  const fetchNasaData = async (): Promise<Competition[]> => {
+    try {
+      console.log("Attempting to fetch from NASA Techport API");
+      
+      // Use Promise.race to implement a timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000); // 3-second timeout
+      
+      const response = await fetch('https://api.nasa.gov/techport/api/projects?api_key=DEMO_KEY', {
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        throw new Error(`NASA API error: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (!data.projects || !data.projects.projects || !Array.isArray(data.projects.projects)) {
+        throw new Error("Invalid data format from NASA API");
+      }
+      
+      const competitions: Competition[] = data.projects.projects.slice(0, 30).map((item: any, index: number) => {
+        const isVirtual = Math.random() < 0.3; // 30% chance of being virtual
+        
+        return {
+          id: index + 1,
+          title: item.title || "NASA Technology Challenge",
+          description: item.description || "A NASA technology development project or challenge",
+          location: isVirtual ? "Virtual" : "NASA HQ, Washington, DC",
+          date: formatDate(new Date().toISOString()),
+          type: determineType(item.title || "Technology"),
+          level: "National",
+          url: `https://techport.nasa.gov/view/${item.projectId}`,
+          zipCode: isVirtual ? "00000" : "20546", // NASA HQ ZIP
+          isVirtual
+        };
+      });
+      
+      console.log(`Fetched ${competitions.length} real NASA competitions`);
+      return competitions;
+    } catch (error) {
+      console.error("NASA API fetch failed:", error);
+      throw error; // Propagate error to trigger SpaceX API attempt
     }
-    
-    const data = await response.json();
-    console.log("SpaceX API response:", data);
-    
-    // Map the SpaceX launches to competition format
-    if (Array.isArray(data)) {
+  };
+  
+  // Function to fetch from SpaceX API with timeout
+  const fetchSpaceXData = async (): Promise<Competition[]> => {
+    try {
+      console.log("Attempting to fetch from SpaceX API");
+      
+      // Use Promise.race to implement a timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000); // 3-second timeout
+      
+      const response = await fetch('https://api.spacexdata.com/v4/launches', {
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        throw new Error(`SpaceX API error: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (!Array.isArray(data)) {
+        throw new Error("Invalid data format from SpaceX API");
+      }
+      
       const competitions: Competition[] = data.slice(0, 20).map((item: any, index: number) => {
         const isVirtual = false; // These are real physical launches
         const launchDate = new Date(item.date_utc);
@@ -220,72 +251,38 @@ export const fetchAlternativeCompetitions = async (): Promise<Competition[]> => 
         };
       });
       
+      console.log(`Fetched ${competitions.length} real SpaceX competitions`);
       return competitions;
+    } catch (error) {
+      console.error("SpaceX API fetch failed:", error);
+      throw error; // Propagate error to trigger backup
     }
-    
-    // If we can't parse the data correctly, throw an error to use backup
-    throw new Error("Could not parse SpaceX API response");
-  } catch (error) {
-    console.error("Failed to fetch from SpaceX API:", error);
-    // Return backup competitions instead of empty array
-    return BACKUP_COMPETITIONS;
-  }
-};
-
-// Helper to determine competition type from text
-const determineType = (text: string): string => {
-  const textLower = text.toLowerCase();
+  };
   
-  if (textLower.includes("science")) return "Science";
-  if (textLower.includes("tech")) return "Technology";
-  if (textLower.includes("engineer")) return "Engineering";
-  if (textLower.includes("math")) return "Math";
-  if (textLower.includes("robot")) return "Robotics";
-  if (textLower.includes("debate")) return "Debate";
-  if (textLower.includes("art")) return "Arts";
-  if (textLower.includes("business")) return "Business";
-  if (textLower.includes("music")) return "Music";
-  if (textLower.includes("sport")) return "Sports";
-  if (textLower.includes("literature")) return "Literature";
-  if (textLower.includes("history")) return "History";
-  if (textLower.includes("innovation")) return "Technology";
-  if (textLower.includes("challenge")) return "Technology";
-  
-  // Randomly select a type for entries where we can't determine
-  const types = ["Science", "Technology", "Engineering", "Math"];
-  return types[Math.floor(Math.random() * types.length)];
-};
-
-/**
- * Main function to get competitions from multiple sources
- */
-export const getCompetitions = async (): Promise<Competition[]> => {
   try {
-    // Try primary source first
-    const primaryCompetitions = await fetchCompetitions();
-    
-    // If primary source returned very few results, try secondary source
-    if (primaryCompetitions.length < 10) {
-      const secondaryCompetitions = await fetchAlternativeCompetitions();
+    // Use Promise.race to either get real data quickly or fall back to backup
+    // This ensures we don't wait too long for slow APIs
+    return await Promise.race([
+      // Try NASA API first
+      fetchNasaData().catch(() => 
+        // If NASA fails, try SpaceX
+        fetchSpaceXData().catch(() => {
+          // Both APIs failed, use backup
+          toast.error("APIs unavailable. Using backup data.");
+          return backupPromise;
+        })
+      ),
       
-      // Combine competitions from both sources
-      const allCompetitions = [...primaryCompetitions];
-      
-      // Add secondary competitions that don't duplicate titles
-      secondaryCompetitions.forEach(comp => {
-        if (!primaryCompetitions.some(p => p.title === comp.title)) {
-          allCompetitions.push(comp);
-        }
-      });
-      
-      console.log(`Returning ${allCompetitions.length} combined competitions`);
-      return allCompetitions;
-    }
-    
-    console.log(`Returning ${primaryCompetitions.length} competitions from primary source`);
-    return primaryCompetitions;
+      // After 5 seconds, just use backup data regardless
+      new Promise<Competition[]>((resolve) => {
+        setTimeout(() => {
+          toast.info("Loading backup competitions for faster response");
+          resolve(BACKUP_COMPETITIONS);
+        }, 5000);
+      })
+    ]);
   } catch (error) {
-    console.error("All competition sources failed:", error);
+    console.error("All data fetching methods failed:", error);
     toast.error("Could not fetch competition data. Using backup data.");
     return BACKUP_COMPETITIONS;
   }

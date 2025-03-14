@@ -1,4 +1,3 @@
-
 import { useState, useMemo, useEffect } from 'react';
 import { Search, MapPin, Calendar, Award, ExternalLink, Globe, Loader2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
@@ -51,22 +50,39 @@ const CompetitionFinderDialog = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    let isMounted = true;
+    
     const fetchCompetitionData = async () => {
       if (open && competitions.length === 0) {
         setLoading(true);
         try {
-          const data = await getCompetitions();
-          setCompetitions(data);
+          const dataPromise = getCompetitions();
+          const timeoutPromise = new Promise(resolve => setTimeout(resolve, 300));
+          
+          const data = await dataPromise;
+          await timeoutPromise;
+          
+          if (isMounted) {
+            setCompetitions(data);
+          }
         } catch (error) {
           console.error("Failed to fetch competitions:", error);
-          toast.error("Failed to load competitions. Please try again later.");
+          if (isMounted) {
+            toast.error("Failed to load competitions. Please try again later.");
+          }
         } finally {
-          setLoading(false);
+          if (isMounted) {
+            setLoading(false);
+          }
         }
       }
     };
 
     fetchCompetitionData();
+    
+    return () => {
+      isMounted = false;
+    };
   }, [open, competitions.length]);
 
   const competitionsWithDistance = useMemo(() => {

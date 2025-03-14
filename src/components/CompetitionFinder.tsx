@@ -48,20 +48,40 @@ const CompetitionFinder = () => {
   
   // Fetch competitions when component mounts
   useEffect(() => {
+    let isMounted = true;
+    
     const fetchCompetitionData = async () => {
       setLoading(true);
       try {
-        const data = await getCompetitions();
-        setCompetitions(data);
+        // Set a timeout to show loading state for at least 300ms to prevent flicker
+        const dataPromise = getCompetitions();
+        const timeoutPromise = new Promise(resolve => setTimeout(resolve, 300));
+        
+        // Wait for both the data and the minimum timeout
+        const data = await dataPromise;
+        await timeoutPromise;
+        
+        if (isMounted) {
+          setCompetitions(data);
+        }
       } catch (error) {
         console.error("Failed to fetch competitions:", error);
-        toast.error("Failed to load competitions. Please try again later.");
+        if (isMounted) {
+          toast.error("Failed to load competitions. Please try again later.");
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
     fetchCompetitionData();
+    
+    // Cleanup function
+    return () => {
+      isMounted = false;
+    };
   }, []);
   
   // Calculate distances for competitions based on user's ZIP
