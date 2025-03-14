@@ -1,5 +1,6 @@
-import { useState, useMemo } from 'react';
-import { Search, MapPin, Calendar, Award, ExternalLink, Globe } from 'lucide-react';
+
+import { useState, useMemo, useEffect } from 'react';
+import { Search, MapPin, Calendar, Award, ExternalLink, Globe, Loader2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -14,86 +15,8 @@ import {
   DialogTrigger
 } from "@/components/ui/dialog";
 import { calculateDistance, isWithinRadius } from '@/utils/distanceUtils';
-
-const COMPETITIONS = [
-  {
-    id: 1,
-    title: "National Science Bowl",
-    description: "A nationwide academic competition that tests students' knowledge in all areas of science and mathematics.",
-    location: "Washington, DC",
-    date: "April 15, 2024",
-    type: "Science",
-    level: "National",
-    url: "https://science.osti.gov/wdts/nsb",
-    zipCode: "20001"
-  },
-  {
-    id: 2,
-    title: "Robotics State Championship",
-    description: "Students design, build, and program robots to compete in an alliance format against other teams.",
-    location: "Chicago, IL",
-    date: "March 5, 2024",
-    type: "Technology",
-    level: "State",
-    url: "https://example.com/robotics",
-    zipCode: "60007"
-  },
-  {
-    id: 3,
-    title: "Youth Entrepreneurship Summit",
-    description: "A platform for young entrepreneurs to pitch their business ideas and get mentorship.",
-    location: "Virtual",
-    date: "May 10, 2024",
-    type: "Business",
-    level: "National",
-    url: "https://example.com/yes",
-    zipCode: "00000"
-  },
-  {
-    id: 4,
-    title: "Regional Debate Tournament",
-    description: "Students debate current political and social issues in a structured format.",
-    location: "Atlanta, GA",
-    date: "February 25, 2024",
-    type: "Debate",
-    level: "Regional",
-    url: "https://example.com/debate",
-    zipCode: "30301"
-  },
-  {
-    id: 5,
-    title: "National Art Challenge",
-    description: "A visual arts competition showcasing student creativity and artistic skills.",
-    location: "New York, NY",
-    date: "June 20, 2024",
-    type: "Arts",
-    level: "National",
-    url: "https://example.com/art",
-    zipCode: "10001"
-  },
-  {
-    id: 6,
-    title: "Local Science Fair",
-    description: "Elementary and middle school students present their science projects and innovations.",
-    location: "Los Angeles, CA",
-    date: "May 5, 2024",
-    type: "Science",
-    level: "Local",
-    url: "https://example.com/sciencefair",
-    zipCode: "90001"
-  },
-  {
-    id: 7,
-    title: "Coding Competition",
-    description: "High school students compete to solve programming challenges in a limited time.",
-    location: "San Francisco, CA",
-    date: "April 30, 2024",
-    type: "Technology",
-    level: "Regional",
-    url: "https://example.com/coding",
-    zipCode: "94016"
-  }
-];
+import { getCompetitions, Competition } from '@/services/competitionService';
+import { toast } from "sonner";
 
 const CLUB_TYPES = [
   "All Types",
@@ -124,17 +47,38 @@ const CompetitionFinderDialog = () => {
   const [zipCode, setZipCode] = useState('');
   const [open, setOpen] = useState(false);
   const [radius, setRadius] = useState(50);
+  const [competitions, setCompetitions] = useState<Competition[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchCompetitionData = async () => {
+      if (open && competitions.length === 0) {
+        setLoading(true);
+        try {
+          const data = await getCompetitions();
+          setCompetitions(data);
+        } catch (error) {
+          console.error("Failed to fetch competitions:", error);
+          toast.error("Failed to load competitions. Please try again later.");
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchCompetitionData();
+  }, [open, competitions.length]);
 
   const competitionsWithDistance = useMemo(() => {
-    return COMPETITIONS.map(comp => {
+    return competitions.map(comp => {
       const distance = zipCode ? calculateDistance(comp.zipCode, zipCode) : -1;
       return {
         ...comp,
         distance,
-        isVirtual: comp.zipCode === "00000"
+        isVirtual: comp.zipCode === "00000" || comp.isVirtual
       };
     });
-  }, [zipCode]);
+  }, [competitions, zipCode]);
 
   const filteredCompetitions = useMemo(() => {
     return competitionsWithDistance.filter(comp => {
@@ -274,7 +218,12 @@ const CompetitionFinderDialog = () => {
         </div>
         
         <div className="space-y-4 mt-2">
-          {filteredCompetitions.length > 0 ? (
+          {loading ? (
+            <div className="flex justify-center items-center py-12">
+              <Loader2 className="h-8 w-8 text-clubseed-500 animate-spin" />
+              <span className="ml-2 text-gray-600">Loading competitions...</span>
+            </div>
+          ) : filteredCompetitions.length > 0 ? (
             filteredCompetitions.map(competition => (
               <Card key={competition.id} className="overflow-hidden transition-all duration-300 hover:shadow-md">
                 <CardHeader className="pb-2">

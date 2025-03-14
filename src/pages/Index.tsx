@@ -38,8 +38,8 @@ const Index = () => {
     <div className="min-h-screen w-full">
       <Hero />
       
-      {/* Mission Section */}
-      <section className="section">
+      {/* Mission Section - Light background */}
+      <section className="section bg-gradient-to-b from-white to-clubseed-50/40">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           <div className="reveal">
             <h2 className="text-3xl md:text-4xl font-bold mb-6">Our Mission</h2>
@@ -114,8 +114,8 @@ const Index = () => {
       
       <Stats />
       
-      {/* Featured Tools */}
-      <div className="w-full bg-clubseed-50">
+      {/* Featured Tools - Light green background */}
+      <div className="w-full bg-gradient-to-b from-white to-clubseed-50">
         <section className="section">
           <div className="text-center mb-16 reveal">
             <h2 className="text-3xl md:text-4xl font-bold mb-6">Powerful Tools for Club Success</h2>
