@@ -37,10 +37,12 @@ const zipCoordinates: Record<string, { lat: number; lng: number }> = {
   "85701": { lat: 32.2226, lng: -110.9747 }, // Tucson
   "00000": { lat: 0, lng: 0 }, // Virtual (no physical location)
 
-  // Add government locations
+  // Added NASA and Space-related locations
   "20546": { lat: 38.8830, lng: -77.0162 }, // NASA HQ
-  "20230": { lat: 38.8935, lng: -77.0264 }, // Dept of Commerce
-  "20523": { lat: 38.8970, lng: -77.0434 }, // USAID
+  "32899": { lat: 28.5618, lng: -80.5775 }, // Cape Canaveral
+  "77058": { lat: 29.5502, lng: -95.0970 }, // NASA Johnson Space Center
+  "91109": { lat: 34.2000, lng: -118.1700 }, // NASA JPL
+  "35812": { lat: 34.6400, lng: -86.6742 }, // NASA Marshall Space Flight Center
 
   // Default coordinates for unknown ZIP codes (US geographic center)
   "default": { lat: 39.8333, lng: -98.5833 } // Geographic center of the contiguous United States

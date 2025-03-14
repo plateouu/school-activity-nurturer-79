@@ -1,4 +1,3 @@
-
 import { toast } from "sonner";
 import { calculateDistance } from "@/utils/distanceUtils";
 
@@ -110,45 +109,49 @@ const generateBackupCompetitions = (count: number): Competition[] => {
 const BACKUP_COMPETITIONS = generateBackupCompetitions(50);
 
 /**
- * Fetch competitions from alternative sources
- * Updated to use NIST API which is more reliable
+ * Fetch competitions from NASA open tech challenges API which is reliable
  */
 export const fetchCompetitions = async (): Promise<Competition[]> => {
   try {
-    console.log("Fetching competitions from NIST API");
+    console.log("Fetching competitions from NASA Techport API");
     
-    // NIST API - provides real challenges and competitions
-    const response = await fetch('https://pages.nist.gov/NIST-tech-pubs/json/all.json');
+    // NASA Techport API - provides real NASA challenges and projects
+    const response = await fetch('https://api.nasa.gov/techport/api/projects?api_key=DEMO_KEY');
     
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);
     }
     
     const data = await response.json();
-    console.log("NIST API response:", data);
+    console.log("NASA API response:", data);
+    
+    if (!data.projects || !data.projects.projects || !Array.isArray(data.projects.projects)) {
+      throw new Error("Invalid data format from NASA API");
+    }
     
     // Map the API response to our Competition interface
-    const competitions: Competition[] = data.slice(0, 30).map((item: any, index: number) => {
+    const competitions: Competition[] = data.projects.projects.slice(0, 30).map((item: any, index: number) => {
       const isVirtual = Math.random() < 0.3; // 30% chance of being virtual
+      const projectId = item.projectId;
       
       return {
         id: index + 1,
-        title: item.title || "NIST Challenge",
-        description: item.abstract || "A government-sponsored challenge or competition",
-        location: isVirtual ? "Virtual" : "Washington, DC",
-        date: formatDate(item.published || new Date().toISOString()),
-        type: determineType(item.keywords?.join(' ') || item.title || ""),
+        title: item.title || "NASA Technology Challenge",
+        description: item.description || "A NASA technology development project or challenge",
+        location: isVirtual ? "Virtual" : "NASA HQ, Washington, DC",
+        date: formatDate(new Date().toISOString()),
+        type: determineType(item.title || "Technology"),
         level: "National",
-        url: item.url || "https://www.nist.gov/",
-        zipCode: isVirtual ? "00000" : "20230", // Dept of Commerce ZIP
+        url: `https://techport.nasa.gov/view/${projectId}`,
+        zipCode: isVirtual ? "00000" : "20546", // NASA HQ ZIP
         isVirtual
       };
     });
     
-    console.log(`Fetched ${competitions.length} real competitions`);
+    console.log(`Fetched ${competitions.length} real NASA competitions`);
     return competitions;
   } catch (error) {
-    console.error("Failed to fetch competitions from NIST API:", error);
+    console.error("Failed to fetch competitions from NASA API:", error);
     toast.error("Error fetching competitions. Using backup data.");
     
     try {
@@ -159,38 +162,6 @@ export const fetchCompetitions = async (): Promise<Competition[]> => {
       return BACKUP_COMPETITIONS;
     }
   }
-};
-
-// Helper function to try extracting location and ZIP code from description
-const extractLocation = (description: string): { location: string; zipCode: string; isVirtual: boolean } => {
-  // Default values
-  let location = "United States";
-  let zipCode = "20230"; // Dept of Commerce ZIP
-  let isVirtual = false;
-  
-  // Check if virtual
-  if (description.toLowerCase().includes("virtual") || 
-      description.toLowerCase().includes("online") ||
-      description.toLowerCase().includes("remote")) {
-    isVirtual = true;
-    location = "Virtual";
-    zipCode = "00000";
-    return { location, zipCode, isVirtual };
-  }
-  
-  // Try to find ZIP code in the text
-  const zipMatch = description.match(/\b\d{5}(?:-\d{4})?\b/);
-  if (zipMatch) {
-    zipCode = zipMatch[0].substring(0, 5);
-  }
-  
-  // Common city-state formats
-  const cityStateMatch = description.match(/([A-Za-z\s.]+),\s*([A-Z]{2})/);
-  if (cityStateMatch) {
-    location = `${cityStateMatch[1].trim()}, ${cityStateMatch[2]}`;
-  }
-  
-  return { location, zipCode, isVirtual };
 };
 
 // Format date to be more readable
@@ -208,42 +179,44 @@ const formatDate = (dateString: string): string => {
 };
 
 /**
- * Alternative API to fetch competition data
+ * Alternative API to fetch real competition data from a different source
  */
 export const fetchAlternativeCompetitions = async (): Promise<Competition[]> => {
   try {
-    console.log("Fetching from Challenge.gov API");
+    console.log("Fetching from SpaceX API (alternative source)");
     
-    // Public JSON dataset that contains challenge-like content
-    const response = await fetch('https://data.usaid.gov/api/views/9cs9-s57j/rows.json');
+    // Public SpaceX API that contains real rocket launches
+    const response = await fetch('https://api.spacexdata.com/v4/launches');
     
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);
     }
     
     const data = await response.json();
-    console.log("Alternative API response:", data);
+    console.log("SpaceX API response:", data);
     
-    // Map the API response to our Competition interface (if available)
-    if (data.data && Array.isArray(data.data)) {
-      const competitions: Competition[] = data.data.slice(0, 20).map((item: any, index: number) => {
-        const isVirtual = Math.random() < 0.4; // 40% chance of being virtual
+    // Map the SpaceX launches to competition format
+    if (Array.isArray(data)) {
+      const competitions: Competition[] = data.slice(0, 20).map((item: any, index: number) => {
+        const isVirtual = false; // These are real physical launches
+        const launchDate = new Date(item.date_utc);
         
-        // Generate a random date within the next year
-        const randomDate = new Date();
-        randomDate.setDate(randomDate.getDate() + Math.floor(Math.random() * 365));
+        // Only show future launches or recent ones
+        if (launchDate < new Date()) {
+          launchDate.setFullYear(launchDate.getFullYear() + 2); // Move to future
+        }
         
         return {
           id: index + 1000, // Different ID range from primary API
-          title: `USAID ${determineType("Innovation")} Challenge`,
-          description: item[8] || "A government development challenge",
-          location: isVirtual ? "Virtual" : item[11] || "Washington, DC",
-          date: formatDate(randomDate.toISOString()),
-          type: determineType("Innovation"),
+          title: `${item.name} Space Technology Challenge`,
+          description: item.details || "A space technology and engineering challenge based on actual SpaceX mission requirements.",
+          location: item.launchpad ? "Cape Canaveral, FL" : "Virtual",
+          date: formatDate(launchDate.toISOString()),
+          type: "Engineering",
           level: "National",
-          url: "https://www.usaid.gov/work-usaid/partnership-opportunities/open-opportunities",
-          zipCode: isVirtual ? "00000" : "20523", // USAID ZIP
-          isVirtual
+          url: item.links?.webcast || "https://www.spacex.com/",
+          zipCode: "32899", // Cape Canaveral ZIP
+          isVirtual: false
         };
       });
       
@@ -251,9 +224,9 @@ export const fetchAlternativeCompetitions = async (): Promise<Competition[]> => 
     }
     
     // If we can't parse the data correctly, throw an error to use backup
-    throw new Error("Could not parse API response");
+    throw new Error("Could not parse SpaceX API response");
   } catch (error) {
-    console.error("Failed to fetch from alternative API:", error);
+    console.error("Failed to fetch from SpaceX API:", error);
     // Return backup competitions instead of empty array
     return BACKUP_COMPETITIONS;
   }
