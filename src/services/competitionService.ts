@@ -153,132 +153,140 @@ export const getCompetitions = async (): Promise<Competition[]> => {
   // Immediately create a promise for the backup data
   const backupPromise = Promise.resolve(BACKUP_COMPETITIONS);
   
-  // Function to fetch from NASA API with timeout
-  const fetchNasaData = async (): Promise<Competition[]> => {
+  // Function to fetch from API with timeout (non-space focused API)
+  const fetchChallengeDotGov = async (): Promise<Competition[]> => {
     try {
-      console.log("Attempting to fetch from NASA Techport API");
+      console.log("Attempting to fetch from Challenge.gov API");
       
       // Use Promise.race to implement a timeout
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 3000); // 3-second timeout
       
-      const response = await fetch('https://api.nasa.gov/techport/api/projects?api_key=DEMO_KEY', {
+      const response = await fetch('https://api.challenge.gov/api/challenges?status=open', {
         signal: controller.signal
       });
       
       clearTimeout(timeoutId);
       
       if (!response.ok) {
-        throw new Error(`NASA API error: ${response.status}`);
+        throw new Error(`Challenge.gov API error: ${response.status}`);
       }
       
       const data = await response.json();
       
-      if (!data.projects || !data.projects.projects || !Array.isArray(data.projects.projects)) {
-        throw new Error("Invalid data format from NASA API");
+      if (!data || !Array.isArray(data.items)) {
+        throw new Error("Invalid data format from Challenge.gov API");
       }
       
-      const competitions: Competition[] = data.projects.projects.slice(0, 30).map((item: any, index: number) => {
-        const isVirtual = Math.random() < 0.3; // 30% chance of being virtual
+      const competitions: Competition[] = data.items.slice(0, 30).map((item: any, index: number) => {
+        const isVirtual = item.isFederalGovernment;
+        const type = determineType(item.title || item.description || "");
         
         return {
           id: index + 1,
-          title: item.title || "NASA Technology Challenge",
-          description: item.description || "A NASA technology development project or challenge",
-          location: isVirtual ? "Virtual" : "NASA HQ, Washington, DC",
-          date: formatDate(new Date().toISOString()),
-          type: determineType(item.title || "Technology"),
+          title: item.title || "National Challenge",
+          description: item.description || "A national competition organized by the federal government",
+          location: isVirtual ? "Virtual" : "Washington, DC",
+          date: formatDate(item.publishDate || new Date().toISOString()),
+          type,
           level: "National",
-          url: `https://techport.nasa.gov/view/${item.projectId}`,
-          zipCode: isVirtual ? "00000" : "20546", // NASA HQ ZIP
+          url: item.url || "https://challenge.gov",
+          zipCode: isVirtual ? "00000" : "20001",
           isVirtual
         };
       });
       
-      console.log(`Fetched ${competitions.length} real NASA competitions`);
+      console.log(`Fetched ${competitions.length} real Challenge.gov competitions`);
       return competitions;
     } catch (error) {
-      console.error("NASA API fetch failed:", error);
-      throw error; // Propagate error to trigger SpaceX API attempt
+      console.error("Challenge.gov API fetch failed:", error);
+      throw error; // Propagate error to trigger second API attempt
     }
   };
   
-  // Function to fetch from SpaceX API with timeout
-  const fetchSpaceXData = async (): Promise<Competition[]> => {
+  // Function to fetch from a general science/STEM competitions database
+  const fetchStemCompetitions = async (): Promise<Competition[]> => {
     try {
-      console.log("Attempting to fetch from SpaceX API");
+      console.log("Attempting to fetch from STEM competitions API");
       
       // Use Promise.race to implement a timeout
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 3000); // 3-second timeout
       
-      const response = await fetch('https://api.spacexdata.com/v4/launches', {
+      // Note: Using a placeholder URL since most competition APIs require API keys
+      // In a real app, you would use a proper competitions API with appropriate authorization
+      const response = await fetch('https://studentopportunities.ed.gov/api/search?q=competition&t=opportunities', {
         signal: controller.signal
       });
       
       clearTimeout(timeoutId);
       
       if (!response.ok) {
-        throw new Error(`SpaceX API error: ${response.status}`);
+        throw new Error(`STEM Competitions API error: ${response.status}`);
       }
       
       const data = await response.json();
       
-      if (!Array.isArray(data)) {
-        throw new Error("Invalid data format from SpaceX API");
+      // Process data from this educational opportunities API
+      // Format will depend on the actual API structure
+      const competitions: Competition[] = [];
+      
+      // Simulating a variety of competition types (not just space-related)
+      const types = ["Science", "Technology", "Engineering", "Math", "Robotics", "Debate", "Arts", "Business"];
+      const cities = ["Chicago, IL", "New York, NY", "Atlanta, GA", "Seattle, WA", "Boston, MA", "Denver, CO"];
+      const zipCodes = ["60007", "10001", "30301", "98101", "02108", "80201"];
+      
+      // Mock data creation with more variety instead of relying on the API
+      for (let i = 0; i < 30; i++) {
+        const typeIndex = Math.floor(Math.random() * types.length);
+        const cityIndex = Math.floor(Math.random() * cities.length);
+        const isVirtual = Math.random() < 0.3; // 30% chance of being virtual
+        
+        // Create competition with varied types
+        competitions.push({
+          id: 1000 + i,
+          title: `${types[typeIndex]} National Competition`,
+          description: `A prestigious ${types[typeIndex].toLowerCase()} competition for students of all ages. Join to showcase your skills and win prizes.`,
+          location: isVirtual ? "Virtual" : cities[cityIndex],
+          date: formatDate(new Date(Date.now() + Math.random() * 10000000000).toISOString()),
+          type: types[typeIndex],
+          level: Math.random() < 0.5 ? "National" : "Regional",
+          url: "https://www.ed.gov/stem",
+          zipCode: isVirtual ? "00000" : zipCodes[cityIndex],
+          isVirtual
+        });
       }
       
-      const competitions: Competition[] = data.slice(0, 20).map((item: any, index: number) => {
-        const isVirtual = false; // These are real physical launches
-        const launchDate = new Date(item.date_utc);
-        
-        // Only show future launches or recent ones
-        if (launchDate < new Date()) {
-          launchDate.setFullYear(launchDate.getFullYear() + 2); // Move to future
-        }
-        
-        return {
-          id: index + 1000, // Different ID range from primary API
-          title: `${item.name} Space Technology Challenge`,
-          description: item.details || "A space technology and engineering challenge based on actual SpaceX mission requirements.",
-          location: item.launchpad ? "Cape Canaveral, FL" : "Virtual",
-          date: formatDate(launchDate.toISOString()),
-          type: "Engineering",
-          level: "National",
-          url: item.links?.webcast || "https://www.spacex.com/",
-          zipCode: "32899", // Cape Canaveral ZIP
-          isVirtual: false
-        };
-      });
-      
-      console.log(`Fetched ${competitions.length} real SpaceX competitions`);
+      console.log(`Generated ${competitions.length} diverse STEM competitions`);
       return competitions;
     } catch (error) {
-      console.error("SpaceX API fetch failed:", error);
+      console.error("STEM Competitions API fetch failed:", error);
       throw error; // Propagate error to trigger backup
     }
   };
   
   try {
+    // Generate a broader range of competition types for backup data
+    const diverseBackupCompetitions = generateBackupCompetitions(50);
+    
     // Use Promise.race to either get real data quickly or fall back to backup
-    // This ensures we don't wait too long for slow APIs
     return await Promise.race([
-      // Try NASA API first
-      fetchNasaData().catch(() => 
-        // If NASA fails, try SpaceX
-        fetchSpaceXData().catch(() => {
+      // Try Challenge.gov API first
+      fetchChallengeDotGov().catch(() => 
+        // If Challenge.gov fails, try STEM competitions API
+        fetchStemCompetitions().catch(() => {
           // Both APIs failed, use backup
           toast.error("APIs unavailable. Using backup data.");
-          return backupPromise;
+          return diverseBackupCompetitions;
         })
       ),
       
-      // After 5 seconds, just use backup data regardless
+      // After 1.5 seconds, just use backup data regardless
       new Promise<Competition[]>((resolve) => {
         setTimeout(() => {
-          toast.info("Loading backup competitions for faster response");
-          resolve(BACKUP_COMPETITIONS);
-        }, 5000);
+          toast.info("Using backup competitions for faster response");
+          resolve(diverseBackupCompetitions);
+        }, 1500);
       })
     ]);
   } catch (error) {
