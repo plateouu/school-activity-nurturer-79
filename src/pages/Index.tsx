@@ -1,3 +1,4 @@
+
 import { useEffect } from 'react';
 import Hero from '@/components/Hero';
 import Stats from '@/components/Stats';
@@ -34,7 +35,7 @@ const Index = () => {
   }, []);
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen w-full">
       <Hero />
       
       {/* Mission Section */}
@@ -114,78 +115,80 @@ const Index = () => {
       <Stats />
       
       {/* Featured Tools */}
-      <section className="section bg-clubseed-50">
-        <div className="text-center mb-16 reveal">
-          <h2 className="text-3xl md:text-4xl font-bold mb-6">Powerful Tools for Club Success</h2>
-          <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-            ClubSeed provides interactive tools designed to help schools start and sustain successful clubs.
-          </p>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          <Card className="bg-white shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1 reveal">
-            <CardHeader>
-              <div className="w-12 h-12 rounded-full bg-clubseed-100 flex items-center justify-center mb-4">
-                <Zap className="h-6 w-6 text-clubseed-600" />
-              </div>
-              <CardTitle>Club Starter Kit</CardTitle>
-              <CardDescription>Generate a customized guide for your club</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600">
-                Our interactive tool helps you generate a step-by-step guide, including necessary resources, funding strategies, and mentorship opportunities.
-              </p>
-            </CardContent>
-            <CardFooter>
-              <Link to="/resources/club-starter">
-                <Button variant="outline" className="text-clubseed-500 hover:bg-clubseed-50">
-                  Generate Your Kit
-                </Button>
-              </Link>
-            </CardFooter>
-          </Card>
+      <div className="w-full bg-clubseed-50">
+        <section className="section">
+          <div className="text-center mb-16 reveal">
+            <h2 className="text-3xl md:text-4xl font-bold mb-6">Powerful Tools for Club Success</h2>
+            <p className="text-lg text-gray-600 max-w-3xl mx-auto">
+              ClubSeed provides interactive tools designed to help schools start and sustain successful clubs.
+            </p>
+          </div>
           
-          <Card className="bg-white shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1 reveal">
-            <CardHeader>
-              <div className="w-12 h-12 rounded-full bg-clubseed-100 flex items-center justify-center mb-4">
-                <Target className="h-6 w-6 text-clubseed-600" />
-              </div>
-              <CardTitle>Club Roadmap</CardTitle>
-              <CardDescription>Visualize and track your club's journey</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600">
-                A customizable visual timeline that helps you track milestones, set goals, and measure progress for your club throughout the year.
-              </p>
-            </CardContent>
-            <CardFooter>
-              <Link to="/resources/roadmap">
-                <Button variant="outline" className="text-clubseed-500 hover:bg-clubseed-50">
-                  Create Roadmap
-                </Button>
-              </Link>
-            </CardFooter>
-          </Card>
-          
-          <Card className="bg-white shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1 reveal">
-            <CardHeader>
-              <div className="w-12 h-12 rounded-full bg-clubseed-100 flex items-center justify-center mb-4">
-                <Globe className="h-6 w-6 text-clubseed-600" />
-              </div>
-              <CardTitle>Competition Finder</CardTitle>
-              <CardDescription>Discover events relevant to your club</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600">
-                Our location-responsive search tool helps you find local and national competitions tailored to your club's interests and goals.
-              </p>
-            </CardContent>
-            <CardFooter>
-              <CompetitionFinderDialog />
-            </CardFooter>
-          </Card>
-        </div>
-      </section>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <Card className="bg-white shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1 reveal">
+              <CardHeader>
+                <div className="w-12 h-12 rounded-full bg-clubseed-100 flex items-center justify-center mb-4">
+                  <Zap className="h-6 w-6 text-clubseed-600" />
+                </div>
+                <CardTitle>Club Starter Kit</CardTitle>
+                <CardDescription>Generate a customized guide for your club</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600">
+                  Our interactive tool helps you generate a step-by-step guide, including necessary resources, funding strategies, and mentorship opportunities.
+                </p>
+              </CardContent>
+              <CardFooter>
+                <Link to="/resources/club-starter">
+                  <Button variant="outline" className="text-clubseed-500 hover:bg-clubseed-50">
+                    Generate Your Kit
+                  </Button>
+                </Link>
+              </CardFooter>
+            </Card>
+            
+            <Card className="bg-white shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1 reveal">
+              <CardHeader>
+                <div className="w-12 h-12 rounded-full bg-clubseed-100 flex items-center justify-center mb-4">
+                  <Target className="h-6 w-6 text-clubseed-600" />
+                </div>
+                <CardTitle>Club Roadmap</CardTitle>
+                <CardDescription>Visualize and track your club's journey</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600">
+                  A customizable visual timeline that helps you track milestones, set goals, and measure progress for your club throughout the year.
+                </p>
+              </CardContent>
+              <CardFooter>
+                <Link to="/resources/roadmap">
+                  <Button variant="outline" className="text-clubseed-500 hover:bg-clubseed-50">
+                    Create Roadmap
+                  </Button>
+                </Link>
+              </CardFooter>
+            </Card>
+            
+            <Card className="bg-white shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1 reveal">
+              <CardHeader>
+                <div className="w-12 h-12 rounded-full bg-clubseed-100 flex items-center justify-center mb-4">
+                  <Globe className="h-6 w-6 text-clubseed-600" />
+                </div>
+                <CardTitle>Competition Finder</CardTitle>
+                <CardDescription>Discover events relevant to your club</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600">
+                  Our location-responsive search tool helps you find local and national competitions tailored to your club's interests and goals.
+                </p>
+              </CardContent>
+              <CardFooter>
+                <CompetitionFinderDialog />
+              </CardFooter>
+            </Card>
+          </div>
+        </section>
+      </div>
       
       <CallToAction />
     </div>
