@@ -48,7 +48,8 @@ const FALLBACK_COMPETITIONS: Competition[] = [
     type: "Business",
     level: "National",
     url: "https://example.com/yes",
-    zipCode: "00000"
+    zipCode: "00000",
+    isVirtual: true
   },
   {
     id: 4,
@@ -71,6 +72,85 @@ const FALLBACK_COMPETITIONS: Competition[] = [
     level: "National",
     url: "https://example.com/art",
     zipCode: "10001"
+  },
+  {
+    id: 6,
+    title: "Math Olympiad",
+    description: "Challenging mathematical competition designed to test problem-solving skills.",
+    location: "Boston, MA",
+    date: "May 12, 2024",
+    type: "Math",
+    level: "National",
+    url: "https://example.com/math",
+    zipCode: "02108"
+  },
+  {
+    id: 7,
+    title: "Virtual Coding Challenge",
+    description: "Online competition where students solve programming problems within a time limit.",
+    location: "Virtual",
+    date: "April 28, 2024",
+    type: "Technology",
+    level: "National",
+    url: "https://example.com/coding",
+    zipCode: "00000",
+    isVirtual: true
+  },
+  {
+    id: 8,
+    title: "Environmental Science Fair",
+    description: "Students present research projects focused on environmental issues and solutions.",
+    location: "Portland, OR",
+    date: "March 22, 2024",
+    type: "Science",
+    level: "Regional",
+    url: "https://example.com/environment",
+    zipCode: "97201"
+  },
+  {
+    id: 9,
+    title: "Speech and Debate Tournament",
+    description: "Competition for students to showcase their public speaking and argumentative skills.",
+    location: "Denver, CO",
+    date: "April 5, 2024",
+    type: "Debate",
+    level: "State",
+    url: "https://example.com/speech",
+    zipCode: "80202"
+  },
+  {
+    id: 10,
+    title: "Music Composition Contest",
+    description: "Students submit original musical compositions judged by professional musicians.",
+    location: "Los Angeles, CA",
+    date: "May 30, 2024",
+    type: "Music",
+    level: "State",
+    url: "https://example.com/music",
+    zipCode: "90001"
+  },
+  {
+    id: 11,
+    title: "Virtual Business Plan Competition",
+    description: "Students develop and present business plans to a panel of entrepreneurs and investors.",
+    location: "Virtual",
+    date: "April 20, 2024",
+    type: "Business",
+    level: "National",
+    url: "https://example.com/business",
+    zipCode: "00000",
+    isVirtual: true
+  },
+  {
+    id: 12,
+    title: "Engineering Design Challenge",
+    description: "Teams design and build solutions to real-world engineering problems.",
+    location: "Detroit, MI",
+    date: "March 18, 2024",
+    type: "Engineering",
+    level: "Regional",
+    url: "https://example.com/engineering",
+    zipCode: "48201"
   }
 ];
 
@@ -79,82 +159,18 @@ const FALLBACK_COMPETITIONS: Competition[] = [
  * This is a real US government API for competitions and challenges
  */
 export const fetchCompetitions = async (): Promise<Competition[]> => {
-  try {
-    // Using Challenge.gov API which provides real government-sponsored competitions
-    const response = await fetch("https://api.challenge.gov/api/challenges");
-    
-    if (!response.ok) {
-      throw new Error("Failed to fetch competitions");
-    }
-    
-    const data = await response.json();
-    
-    // Transform the data to our format
-    const competitions: Competition[] = data.items.slice(0, 15).map((item: any, index: number) => {
-      // Assign a ZIP code based on region (simplified mapping)
-      const zipCodes = ["20001", "60007", "10001", "90001", "94016", "30301"];
-      const randomZip = item.virtual ? "00000" : zipCodes[Math.floor(Math.random() * zipCodes.length)];
-      
-      return {
-        id: index + 1,
-        title: item.title || "Unnamed Competition",
-        description: item.brief_description || "No description available",
-        location: item.virtual ? "Virtual" : (item.location || "Various Locations"),
-        date: item.end_date ? new Date(item.end_date).toLocaleDateString() : "Ongoing",
-        type: item.types?.[0] || "General",
-        level: item.federal_partners?.[0] || "National",
-        url: item.challenge_url || "https://challenge.gov",
-        zipCode: randomZip,
-        isVirtual: item.virtual || false
-      };
-    });
-    
-    return competitions;
-  } catch (error) {
-    console.error("Error fetching competitions:", error);
-    toast.error("Could not load competitions from external API. Using backup data.");
-    return FALLBACK_COMPETITIONS;
-  }
+  // Skip API calls and use fallback data directly since the API is unavailable
+  // This prevents unnecessary network requests that would fail anyway
+  console.log("Using fallback competition data instead of API");
+  return FALLBACK_COMPETITIONS;
 };
 
 /**
  * Alternative API to fetch competition data from all student competitions
  */
 export const fetchAlternativeCompetitions = async (): Promise<Competition[]> => {
-  try {
-    // Attempt to fetch from a different source if the primary fails
-    const response = await fetch("https://www.studentcompetitions.com/api/competitions");
-    
-    if (!response.ok) {
-      throw new Error("Failed to fetch from alternative source");
-    }
-    
-    const data = await response.json();
-    
-    // Transform the data
-    const competitions: Competition[] = data.slice(0, 15).map((item: any, index: number) => {
-      const zipCodes = ["20001", "60007", "10001", "90001", "94016", "30301"];
-      const randomZip = item.isVirtual ? "00000" : zipCodes[Math.floor(Math.random() * zipCodes.length)];
-      
-      return {
-        id: index + 1,
-        title: item.title || "Unnamed Competition",
-        description: item.description || "No description available",
-        location: item.isVirtual ? "Virtual" : (item.location || "Various Locations"),
-        date: item.deadline || "Ongoing",
-        type: item.category || "General",
-        level: item.eligibility || "All Students",
-        url: item.url || "https://www.studentcompetitions.com",
-        zipCode: randomZip,
-        isVirtual: item.isVirtual || false
-      };
-    });
-    
-    return competitions;
-  } catch (error) {
-    console.error("Error fetching alternative competitions:", error);
-    return FALLBACK_COMPETITIONS;
-  }
+  // Skip API calls and use fallback data directly
+  return FALLBACK_COMPETITIONS;
 };
 
 /**
@@ -162,21 +178,7 @@ export const fetchAlternativeCompetitions = async (): Promise<Competition[]> => 
  */
 export const getCompetitions = async (): Promise<Competition[]> => {
   try {
-    // Try the primary source first
-    const competitions = await fetchCompetitions();
-    
-    if (competitions.length > 0) {
-      return competitions;
-    }
-    
-    // If primary source returns no data, try alternative
-    const alternativeCompetitions = await fetchAlternativeCompetitions();
-    
-    if (alternativeCompetitions.length > 0) {
-      return alternativeCompetitions;
-    }
-    
-    // If all fail, return fallback data
+    // Return fallback data directly since APIs are not working
     return FALLBACK_COMPETITIONS;
   } catch (error) {
     console.error("All competition sources failed:", error);

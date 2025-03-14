@@ -66,9 +66,6 @@ const Footer = () => {
                 <Link to="/resources/club-starter" className="text-gray-600 hover:text-clubseed-500 transition-colors">Club Starter Kit</Link>
               </li>
               <li>
-                <Link to="/resources/competition-finder" className="text-gray-600 hover:text-clubseed-500 transition-colors">Competition Finder</Link>
-              </li>
-              <li>
                 <Link to="/resources/roadmap" className="text-gray-600 hover:text-clubseed-500 transition-colors">Club Roadmap</Link>
               </li>
               <li>
