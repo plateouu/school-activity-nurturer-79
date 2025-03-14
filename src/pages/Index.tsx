@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import Hero from '@/components/Hero';
 import Stats from '@/components/Stats';
 import CallToAction from '@/components/CallToAction';
+import CompetitionFinderDialog from '@/components/CompetitionFinderDialog';
 import { Link } from 'react-router-dom';
 import { Activity, Award, BookOpen, Users, ChevronRight, Zap, Target, Globe } from 'lucide-react';
 import { Button } from "@/components/ui/button";
@@ -48,12 +49,15 @@ const Index = () => {
             <p className="text-gray-600 mb-8">
               We believe that every student deserves access to enriching clubs and activities that foster growth, creativity, and community—regardless of their school's financial resources.
             </p>
-            <Link to="/about">
-              <Button variant="outline" className="flex items-center border-clubseed-500 text-clubseed-600 hover:bg-clubseed-50">
-                Learn About Our Story
-                <ChevronRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
+            <div className="flex flex-wrap gap-4">
+              <Link to="/about">
+                <Button variant="outline" className="flex items-center border-clubseed-500 text-clubseed-600 hover:bg-clubseed-50">
+                  Learn About Our Story
+                  <ChevronRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
+              <CompetitionFinderDialog />
+            </div>
           </div>
           
           <div className="grid grid-cols-2 gap-6 reveal">
@@ -178,11 +182,7 @@ const Index = () => {
               </p>
             </CardContent>
             <CardFooter>
-              <Link to="/resources/competition-finder">
-                <Button variant="outline" className="text-clubseed-500 hover:bg-clubseed-50">
-                  Find Competitions
-                </Button>
-              </Link>
+              <CompetitionFinderDialog />
             </CardFooter>
           </Card>
         </div>

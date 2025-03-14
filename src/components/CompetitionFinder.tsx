@@ -17,7 +17,8 @@ const COMPETITIONS = [
     date: "April 15, 2024",
     type: "Science",
     level: "National",
-    url: "https://science.osti.gov/wdts/nsb"
+    url: "https://science.osti.gov/wdts/nsb",
+    zipCode: "20001"
   },
   {
     id: 2,
@@ -27,7 +28,8 @@ const COMPETITIONS = [
     date: "March 5, 2024",
     type: "Technology",
     level: "State",
-    url: "https://example.com/robotics"
+    url: "https://example.com/robotics",
+    zipCode: "60007"
   },
   {
     id: 3,
@@ -37,7 +39,8 @@ const COMPETITIONS = [
     date: "May 10, 2024",
     type: "Business",
     level: "National",
-    url: "https://example.com/yes"
+    url: "https://example.com/yes",
+    zipCode: "00000"
   },
   {
     id: 4,
@@ -47,7 +50,8 @@ const COMPETITIONS = [
     date: "February 25, 2024",
     type: "Debate",
     level: "Regional",
-    url: "https://example.com/debate"
+    url: "https://example.com/debate",
+    zipCode: "30301"
   },
   {
     id: 5,
@@ -57,7 +61,30 @@ const COMPETITIONS = [
     date: "June 20, 2024",
     type: "Arts",
     level: "National",
-    url: "https://example.com/art"
+    url: "https://example.com/art",
+    zipCode: "10001"
+  },
+  {
+    id: 6,
+    title: "Local Science Fair",
+    description: "Elementary and middle school students present their science projects and innovations.",
+    location: "Los Angeles, CA",
+    date: "May 5, 2024",
+    type: "Science",
+    level: "Local",
+    url: "https://example.com/sciencefair",
+    zipCode: "90001"
+  },
+  {
+    id: 7,
+    title: "Coding Competition",
+    description: "High school students compete to solve programming challenges in a limited time.",
+    location: "San Francisco, CA",
+    date: "April 30, 2024",
+    type: "Technology",
+    level: "Regional",
+    url: "https://example.com/coding",
+    zipCode: "94016"
   }
 ];
 
@@ -90,6 +117,7 @@ const CompetitionFinder = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [clubType, setClubType] = useState('All Types');
   const [location, setLocation] = useState('All Locations');
+  const [zipCode, setZipCode] = useState('');
   
   // Filter competitions based on search and filters
   const filteredCompetitions = COMPETITIONS.filter(comp => {
@@ -99,8 +127,9 @@ const CompetitionFinder = () => {
       
     const matchesType = clubType === 'All Types' || comp.type === clubType;
     const matchesLocation = location === 'All Locations' || comp.level === location;
+    const matchesZipCode = !zipCode || comp.zipCode.startsWith(zipCode);
     
-    return matchesSearch && matchesType && matchesLocation;
+    return matchesSearch && matchesType && matchesLocation && matchesZipCode;
   });
 
   return (
@@ -145,6 +174,18 @@ const CompetitionFinder = () => {
               ))}
             </SelectContent>
           </Select>
+          
+          <div className="relative">
+            <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+            <Input
+              type="text"
+              placeholder="Enter your ZIP code"
+              className="pl-10"
+              value={zipCode}
+              onChange={(e) => setZipCode(e.target.value.slice(0, 5))}
+              maxLength={5}
+            />
+          </div>
         </div>
       </div>
       
@@ -197,6 +238,7 @@ const CompetitionFinder = () => {
                 setSearchTerm('');
                 setClubType('All Types');
                 setLocation('All Locations');
+                setZipCode('');
               }}
             >
               Clear all filters

@@ -1,6 +1,7 @@
 
 import { ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import CompetitionFinderDialog from './CompetitionFinderDialog';
 
 const CallToAction = () => {
   return (
@@ -28,6 +29,7 @@ const CallToAction = () => {
               Get Started
               <ArrowRight className="ml-2 h-5 w-5" />
             </Link>
+            <CompetitionFinderDialog />
             <Link 
               to="/resources" 
               className="px-8 py-4 bg-transparent border-2 border-white text-white rounded-lg font-semibold text-lg transition-all duration-300 hover:bg-white/10"
