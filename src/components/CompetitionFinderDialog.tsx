@@ -134,7 +134,7 @@ const CompetitionFinderDialog = () => {
       <DialogTrigger asChild>
         <Button
           variant="outline"
-          className="bg-clubseed-500 hover:bg-clubseed-600 text-white border-none"
+          className="border border-clubseed-500 text-clubseed-600 bg-white hover:bg-clubseed-50"
         >
           Find Competitions Nearby
         </Button>
